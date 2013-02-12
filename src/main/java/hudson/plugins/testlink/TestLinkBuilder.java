@@ -1,18 +1,18 @@
-/* 
+/*
  * The MIT License
- * 
+ *
  * Copyright (c) 2010 Bruno P. Kinoshita <http://www.kinoshita.eti.br>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -43,7 +43,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -55,18 +57,19 @@ import br.eti.kinoshita.testlinkjavaapi.model.Build;
 import br.eti.kinoshita.testlinkjavaapi.model.TestCase;
 import br.eti.kinoshita.testlinkjavaapi.model.TestPlan;
 import br.eti.kinoshita.testlinkjavaapi.model.TestProject;
+import br.eti.kinoshita.testlinkjavaapi.model.TestSuite;
 import br.eti.kinoshita.testlinkjavaapi.util.TestLinkAPIException;
 
 /**
  * A builder to add a TestLink build step.
- * 
+ *
  * @author Bruno P. Kinoshita - http://www.kinoshita.eti.br
  * @since 1.0
  */
 public class TestLinkBuilder extends AbstractTestLinkBuilder {
 
 	private static final Logger LOGGER = Logger.getLogger("hudson.plugins.testlink");
-	
+
 	/**
 	 * The Descriptor of this Builder. It contains the TestLink installation.
 	 */
@@ -95,9 +98,9 @@ public class TestLinkBuilder extends AbstractTestLinkBuilder {
 	@Override
 	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher,
 			BuildListener listener) throws InterruptedException, IOException {
-		
+
 		LOGGER.log(Level.INFO, "TestLink builder started");
-		
+
 		this.failure = false;
 
 		// TestLink installation
@@ -137,8 +140,8 @@ public class TestLinkBuilder extends AbstractTestLinkBuilder {
 			TestCase[] testCases = testLinkSite.getAutomatedTestCases(customFieldsNames);
 
 			// Transforms test cases into test case wrappers
-			automatedTestCases = this.transform(testCases);
-			
+            automatedTestCases = this.transform(testLinkSite, testCases);
+
 			testCases = null;
 
 			listener.getLogger().println(Messages.TestLinkBuilder_ShowFoundAutomatedTestCases(automatedTestCases.length));
@@ -154,7 +157,7 @@ public class TestLinkBuilder extends AbstractTestLinkBuilder {
 			e.printStackTrace(listener.fatalError(e.getMessage()));
 			throw new AbortException(Messages.TestLinkBuilder_TestLinkCommunicationError());
 		}
-		
+
 		if(LOGGER.isLoggable(Level.FINE)) {
 			for(TestCaseWrapper tcw : automatedTestCases) {
 				LOGGER.log(Level.FINE, "TestLink automated test case ID [" + tcw.getId() + "], name [" +tcw.getName()+ "]");
@@ -172,7 +175,7 @@ public class TestLinkBuilder extends AbstractTestLinkBuilder {
 		// contains attachments, platform and notes.
 		try {
 			listener.getLogger().println(Messages.Results_LookingForTestResults());
-			
+
 			if(getResultSeekers() != null) {
 				for (ResultSeeker resultSeeker : getResultSeekers()) {
 					LOGGER.log(Level.INFO, "Seeking test results. Using: " + resultSeeker.getDescriptor().getDisplayName());
@@ -190,13 +193,13 @@ public class TestLinkBuilder extends AbstractTestLinkBuilder {
 		// This report is used to generate the graphs and to store the list of
 		// test cases with each found status.
 		final Report report = testLinkSite.getReport();
-		
+
 		listener.getLogger().println(Messages.TestLinkBuilder_ShowFoundTestResults(report.getTestsTotal()));
-		
+
 		final TestLinkResult result = new TestLinkResult(report, build);
 		final TestLinkBuildAction buildAction = new TestLinkBuildAction(build, result);
 		build.addAction(buildAction);
-		
+
 		if(report.getTestsTotal() <= 0 && this.getFailIfNoResults() == Boolean.TRUE) {
 			listener.getLogger().println("No test results found. Setting the build result as FAILURE.");
 			build.setResult(Result.FAILURE);
@@ -209,7 +212,7 @@ public class TestLinkBuilder extends AbstractTestLinkBuilder {
 		}
 
 		LOGGER.log(Level.INFO, "TestLink builder finished");
-		
+
 		// end
 		return Boolean.TRUE;
 	}
@@ -218,14 +221,40 @@ public class TestLinkBuilder extends AbstractTestLinkBuilder {
 	 * @param testCases
 	 * @return
 	 */
-	private TestCaseWrapper[] transform(TestCase[] testCases) {
+    private TestCaseWrapper[] transform(TestLinkSite testLinkSite,
+            TestCase[] testCases) {
 		if(testCases == null || testCases.length == 0) {
 			return new TestCaseWrapper[0];
 		}
-		
+
 		List<TestCaseWrapper> automatedTestCases = new ArrayList<TestCaseWrapper>();
+
+        // store suite and project name in lookup Maps to skip repeat calls
+        Map<Integer, String> suiteIdMap = new HashMap<Integer, String>();
 		for(TestCase testCase : testCases) {
-			TestCaseWrapper wrapper = new TestCaseWrapper(testCase);
+            // get the full test case to get the name and suite
+            TestCase fullTestCase = testLinkSite.getApi()
+                    .getTestCaseByExternalId(testCase.getFullExternalId(),
+                            testCase.getVersion());
+
+            // get the test suite name
+            int testSuiteId = fullTestCase.getTestSuiteId();
+            if (suiteIdMap.get(testSuiteId) == null) {
+                // get the suite name for the first time
+                List<Integer> testSuiteIds = new ArrayList<Integer>();
+                testSuiteIds.add(testSuiteId);
+                TestSuite[] suites = testLinkSite.getApi().getTestSuiteByID(
+                        testSuiteIds);
+                suiteIdMap.put(testSuiteId, suites[0].getName());
+            }
+
+            // set fields not available in test execution results
+            testCase.setTestSuiteId(testSuiteId);
+            testCase.setName(fullTestCase.getName());
+
+            TestCaseWrapper wrapper = new TestCaseWrapper(testCase);
+            wrapper.setTestSuiteName(suiteIdMap.get(testSuiteId));
+
 			automatedTestCases.add(wrapper);
 		}
 		return automatedTestCases.toArray(new TestCaseWrapper[0]);
@@ -233,7 +262,7 @@ public class TestLinkBuilder extends AbstractTestLinkBuilder {
 
 	/**
 	 * Gets object to interact with TestLink site.
-	 * 
+	 *
 	 * @throws MalformedURLException
 	 */
 	public TestLinkSite getTestLinkSite(String testLinkUrl,
@@ -257,7 +286,7 @@ public class TestLinkBuilder extends AbstractTestLinkBuilder {
 
 	/**
 	 * Executes the list of single build steps.
-	 * 
+	 *
 	 * @param build
 	 *            Jenkins build.
 	 * @param launcher
@@ -284,7 +313,7 @@ public class TestLinkBuilder extends AbstractTestLinkBuilder {
 	 * array of automated test cases, this method executes the iterative builds
 	 * steps using Jenkins objects.
 	 * </p>
-	 * 
+	 *
 	 * @param automatedTestCases
 	 *            array of automated test cases
 	 * @param testLinkSite

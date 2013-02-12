@@ -2,17 +2,17 @@
  * The MIT License
  *
  * Copyright (c) <2011> <Bruno P. Kinoshita>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -37,9 +37,9 @@ import br.eti.kinoshita.testlinkjavaapi.model.TestPlan;
 import br.eti.kinoshita.testlinkjavaapi.model.TestProject;
 
 /**
- * Immutable object that represents the TestLink site with a Test Project, 
+ * Immutable object that represents the TestLink site with a Test Project,
  * a Test Plan and a Build.
- * 
+ *
  * @author Bruno P. Kinoshita - http://www.kinoshita.eti.br
  * @since 3.0
  */
@@ -51,7 +51,7 @@ public class TestLinkSite
 	protected final TestPlan testPlan;
 	protected final Build build;
 	protected final Report report;
-	
+
 	/**
 	 * @param api TestLink Java API object
 	 * @param testProject TestLink Test Project
@@ -65,14 +65,15 @@ public class TestLinkSite
 		this.testProject = testProject;
 		this.testPlan = testPlan;
 		this.build = build;
-		if(build != null) 
+		if(build != null)
 		{
-			report = new Report(build.getId() == null ? 0 : build.getId(), build.getName());
+            report = new Report(testProject, testPlan, build.getId() == null ? 0
+                    : build.getId(), build.getName());
 		} else {
-			report = new Report(0, null);
+            report = new Report(testProject, testPlan, 0, null);
 		}
 	}
-	
+
 	/**
 	 * @return the TestLink Java API object
 	 */
@@ -104,7 +105,7 @@ public class TestLinkSite
 	{
 		return build;
 	}
-	
+
 	/**
 	 * @return the report
 	 */
@@ -116,20 +117,20 @@ public class TestLinkSite
 	 * @param customFieldsNames Array of custom fields names
 	 * @return Array of automated test cases with custom fields
 	 */
-	public TestCase[] getAutomatedTestCases( String[] customFieldsNames ) 
+	public TestCase[] getAutomatedTestCases( String[] customFieldsNames )
 	{
 		final TestCase[] testCases = this.api.getTestCasesForTestPlan(
-				getTestPlan().getId(), 
-				null, 
-				null, 
-				null, 
+				getTestPlan().getId(),
 				null,
-				null, 
-				null, 
-				null, 
-				ExecutionType.AUTOMATED, 
+				null,
+				null,
+				null,
+				null,
+				null,
+				null,
+				ExecutionType.AUTOMATED,
 				Boolean.TRUE,
-				null);			
+				null);
 
 		for( final TestCase testCase : testCases )
 		{
@@ -139,50 +140,50 @@ public class TestLinkSite
 			{
 				for( String customFieldName : customFieldsNames )
 				{
-					final CustomField customField = 
+					final CustomField customField =
 							this.api.getTestCaseCustomFieldDesignValue(
-									testCase.getId(), 
-									null, /* testCaseExternalId */ 
-									testCase.getVersion(), 
-									testCase.getTestProjectId(), 
-									customFieldName, 
+									testCase.getId(),
+									null, /* testCaseExternalId */
+									testCase.getVersion(),
+									testCase.getTestProjectId(),
+									customFieldName,
 									ResponseDetails.FULL);
 					testCase.getCustomFields().add(customField);
 				}
 			}
 		}
-		
+
 		return testCases;
 	}
-	
+
 	/**
-	 * Updates the test cases status in TestLink (note and status) and 
+	 * Updates the test cases status in TestLink (note and status) and
 	 * uploads any existing attachments.
-	 * 
+	 *
 	 * @param testCases Test Cases
 	 */
-	public int updateTestCase( TestCaseWrapper testCase ) 
+	public int updateTestCase( TestCaseWrapper testCase )
 	{
 		int executionId = 0;
-		
+
 		if ( testCase.getExecutionStatus() != null || testCase.getExecutionStatus() != ExecutionStatus.NOT_RUN )
 		{
 			// Update Test Case status
 			final ReportTCResultResponse reportTCResultResponse = api.reportTCResult(
-					testCase.getId(), 
-					testCase.getInternalId(), 
-					testPlan.getId(), 
-					testCase.getExecutionStatus(), 
-					build.getId(), 
-					build.getName(), 
-					testCase.getNotes(), 
+					testCase.getId(),
+					testCase.getInternalId(),
+					testPlan.getId(),
+					testCase.getExecutionStatus(),
+					build.getId(),
+					build.getName(),
+					testCase.getNotes(),
 					null, // guess
 					null, // bug id
-					null, // platform id 
+					null, // platform id
 					testCase.getPlatform(), // platform name
 					null, // custom fields
 					null);
-			
+
 			switch(testCase.getExecutionStatus()) {
 			case PASSED:
 				report.setPassed(report.getPassed()+1);
@@ -196,22 +197,22 @@ public class TestLinkSite
 			default:
 				break;
 			}
-			
+
 			executionId = reportTCResultResponse.getExecutionId();
 			report.addTestCase(testCase);
 		}
-		
+
 		return executionId;
 	}
-	
+
 	public void uploadAttachment(int executionId, Attachment attachment) {
 		api.uploadExecutionAttachment(
-				executionId, 
-				attachment.getTitle(), 
-				attachment.getDescription(), 
-				attachment.getFileName(), 
-				attachment.getFileType(), 
+				executionId,
+				attachment.getTitle(),
+				attachment.getDescription(),
+				attachment.getFileName(),
+				attachment.getFileType(),
 				attachment.getContent());
 	}
-	
+
 }

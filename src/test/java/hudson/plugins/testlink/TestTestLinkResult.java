@@ -23,6 +23,8 @@
  */
 package hudson.plugins.testlink;
 
+import br.eti.kinoshita.testlinkjavaapi.model.TestPlan;
+import br.eti.kinoshita.testlinkjavaapi.model.TestProject;
 import hudson.model.AbstractBuild;
 import junit.framework.TestCase;
 
@@ -40,7 +42,13 @@ extends TestCase
 
 	public void testTestLinkResult()
 	{
-		Report report = new Report(1, null);
+	    TestProject testProject = new TestProject();
+        testProject.setId(123);
+        testProject.setName("test project");
+        TestPlan testPlan = new TestPlan();
+        testPlan.setId(1234);
+        testPlan.setName("test plan");
+		Report report = new Report(testProject, testPlan, 1, null);
 		AbstractBuild<?, ?> build = null;
 		TestLinkResult tlr = new TestLinkResult(report, build);
 		
