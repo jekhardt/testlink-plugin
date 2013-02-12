@@ -1,18 +1,18 @@
-/* 
+/*
  * The MIT License
- * 
+ *
  * Copyright (c) 2010 Bruno P. Kinoshita <http://www.kinoshita.eti.br>
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -74,10 +74,15 @@ public class TestCaseWrapper implements Serializable {
 	 */
 	private TestCase testCase;
 
+    /**
+     * Additional fields not currently part of TestCase
+     */
+    private String testSuiteName;
+
 	public TestCaseWrapper() {
 		this(new TestCase());
 	}
-	
+
 	/**
 	 * @param testCase
 	 *            wrapped automated test case.
@@ -91,7 +96,7 @@ public class TestCaseWrapper implements Serializable {
 
 	/**
 	 * Add a custom field name and its execution status.
-	 * 
+	 *
 	 * @param customField
 	 *            custom field name
 	 * @param executionStatus
@@ -113,7 +118,7 @@ public class TestCaseWrapper implements Serializable {
 	 * Adds an attachment to this test case. Use it with caution, as it may case
 	 * memory issues if you store many Attachments in memory. The content is
 	 * saved as Base64 in memory.
-	 * 
+	 *
 	 * @param attachment
 	 */
 	public void addAttachment(Attachment attachment) {
@@ -143,9 +148,9 @@ public class TestCaseWrapper implements Serializable {
 	public ExecutionStatus getExecutionStatus() {
 		return this.testCase.getExecutionStatus() == null ? ExecutionStatus.NOT_RUN : this.testCase.getExecutionStatus();
 	}
-	
+
 	/**
-	 * Calculates the new value of this wrapped test case execution status, 
+	 * Calculates the new value of this wrapped test case execution status,
 	 * given a number of custom fields.
 	 * @param numberOfCustomFields
 	 * @return new value of this wrapped test case execution status
@@ -170,7 +175,7 @@ public class TestCaseWrapper implements Serializable {
 	public Integer getId() {
 		return this.testCase.getId();
 	}
-	
+
 	public void setId(Integer id) {
 		this.testCase.setId(id);
 	}
@@ -184,11 +189,11 @@ public class TestCaseWrapper implements Serializable {
 
 		this.testCase.setCustomFields(customFields);
 	}
-	
+
 	public List<CustomField> getCustomFields() {
 		return this.testCase.getCustomFields();
 	}
-	
+
 	public String[] getKeyCustomFieldValues(final String keyCustomFieldName) {
 		String keyCustomFieldValue = null;
 		for(CustomField customField : this.getCustomFields()) {
@@ -199,7 +204,7 @@ public class TestCaseWrapper implements Serializable {
 		}
 		return this.split(keyCustomFieldValue);
 	}
-	
+
 	public String getKeyCustomFieldValue(final String keyCustomFieldName) {
 		String keyCustomFieldValue = null;
 		for(CustomField customField : this.getCustomFields()) {
@@ -210,7 +215,7 @@ public class TestCaseWrapper implements Serializable {
 		}
 		return keyCustomFieldValue;
 	}
-	
+
 	/**
 	 * Splits a String by comma and gets an array of Strings.
 	 */
@@ -243,55 +248,63 @@ public class TestCaseWrapper implements Serializable {
 	public Integer getInternalId() {
 		return testCase.getInternalId();
 	}
-	
+
 	public void setInternalId(Integer internalId) {
 		this.testCase.setInternalId(internalId);
 	}
-	
+
 	public Integer getExecutionOrder() {
 		return this.testCase.getExecutionOrder();
 	}
-	
+
 	public void setExecutionOrder(Integer executionOrder) {
 		this.testCase.setExecutionOrder(executionOrder);
 	}
-	
+
+    public String getTestSuiteName() {
+        return this.testSuiteName;
+    }
+
+    public void setTestSuiteName(String testSuiteName) {
+        this.testSuiteName = testSuiteName;
+    }
+
 	public Integer getTestSuiteId() {
 		return this.testCase.getTestSuiteId();
 	}
-	
+
 	public void setTestSuiteId(Integer testSuiteId) {
 		this.testCase.setTestSuiteId(testSuiteId);
 	}
-	
+
 	public Integer getTestProjectId() {
 		return this.testCase.getTestProjectId();
 	}
-	
+
 	public void setTestProjectId(Integer testProjectId) {
 		this.testCase.setTestProjectId(testProjectId);
 	}
-	
+
 	public String getAuthorLogin() {
 		return this.testCase.getAuthorLogin();
 	}
-	
+
 	public void setAuthorLogin(String authorLogin) {
 		this.testCase.setAuthorLogin(authorLogin);
 	}
-	
+
 	public String getSummary() {
 		return this.testCase.getSummary();
 	}
-	
+
 	public void setSummary(String summary) {
 		this.testCase.setSummary(summary);
 	}
-	
+
 	public List<TestCaseStep> getSteps() {
 		return this.testCase.getSteps();
 	}
-	
+
 	public void setSteps(List<TestCaseStep> steps) {
 		this.testCase.setSteps(steps);
 	}
@@ -299,11 +312,11 @@ public class TestCaseWrapper implements Serializable {
 	public Integer getVersion() {
 		return testCase.getVersion();
 	}
-	
+
 	public String getFullExternalId() {
 		return testCase.getFullExternalId();
 	}
-	
+
 	public void setFullExternalId(String fullExternalId) {
 		this.testCase.setFullExternalId(fullExternalId);
 	}
